@@ -41,6 +41,10 @@ PRECISIONS = {
 # Max levels to maintain in the order book per side (prevents infinite growth)
 MAX_LEVELS = 20
 
+# Max changes (orders/deltas) per side per timestamp -- increased per request for
+# more orders/richer books in data gen (was 1-3; now 3-6 for higher density sim).
+MAX_CHANGES_PER_DELTA = 6
+
 # Helper: Initialize a full order book for a symbol
 def init_order_book(base_price, symbol):
     """Create initial bid/ask dicts: price -> quantity (for easy updates).
@@ -64,14 +68,16 @@ def init_order_book(base_price, symbol):
 
 # Helper: Apply random delta update to book (add/modify/delete) for realism
 def apply_order_book_delta(book, mid_price, symbol, side='bid'):
-    """Randomly update 1-3 levels: modify qty, add new level, or delete (cancel).
+    """Randomly update 3-6 levels (increased per request): modify qty, add new level,
+    or delete (cancel). This generates more orders/deltas per timestamp for denser
+    order books in the Excel data.
     Offsets are relative (%/tick-based) to mid_price and symbol's scale; uses
     per-symbol tick/precision (e.g., BTC: 0.01 tick/2 dec; XRP: 0.0001/4 dec).
     Ensures bids < mid < asks, no cross or jumps. qty=0 means delete.
     Returns sorted delta list of [price, qty].
     """
     delta = []
-    num_changes = random.randint(1, 3)
+    num_changes = random.randint(3, MAX_CHANGES_PER_DELTA)
     tick = TICK_SIZES[symbol]
     prec = PRECISIONS[symbol]
     for _ in range(num_changes):

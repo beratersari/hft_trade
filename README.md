@@ -145,18 +145,22 @@ python generate_order_book_updates.py
 This provides high-fidelity simulation for your crypto analyzer app. Per-symbol configs (ticks, precision, etc.) are at the top of the script for easy tuning.
 
 ### Live Order Book GUI
-New feature: `order_book_gui.py` visualizes the order book like a live depth book/table.
+`order_book_gui.py` visualizes the order book like a live depth book/table (updated per latest features).
 
 - Bids in green, asks in red.
 - Replays deltas from `order_book_updates.xlsx` for streaming simulation.
-- Shows top 10 levels/side with cumulative qty; per-symbol selector.
-- Uses Tkinter (built-in) + pandas for simple, dependency-light display.
+- **Exactly top 10 levels/side** only (enforced in trims post-agg); with cumulative qty; per-symbol selector.
+- **Per request**: *All numbers* rounded *down* (floor via helper) for qtys/cumuls. Prices: *user-chosen* decimals (dynamic GUI selector/Combobox for 0/1/2/.../8; overrides PRECISIONS; side-specific bucketing/agg -- bids floor down, asks ceil up to avoid dups, conservative HFT display e.g., bid 64500.29@1->64500.2, ask 100.01@2->100.02). Cumuls recalculated based on side-rounded prices. Change prec on-the-fly without resetting replay.
+- **NEW feature**: Toggle to show only bids, only asks, or both (radio buttons under selectors; filters table dynamically).
+- Uses Tkinter (built-in) + pandas for simple, dependency-light display (optimized: no repeated sorting in viz for HFT/large requests).
 
 #### Usage
-1. Generate data first: `python generate_order_book_updates.py`
+1. Generate data first: `python generate_order_book_updates.py` (now produces more orders/deltas per timestamp for richer books).
 2. Run GUI: `python order_book_gui.py`
    - Select symbol, click "Start Live Replay" to see updates flow in real-time.
-   - Table auto-colors (bids green at top in ascending order, asks red at bottom in descending order per spec) and refreshes; cumuls logical from best levels.
+   - Table auto-colors (bids green at top in ascending order, asks red at bottom in ascending/classical order) and refreshes; cumuls logical from best levels (now based on side-rounded prices).
    - Includes order execution/matching: crossed books (max bid >= min ask) auto-trade, preventing invalid states and simulating fills.
+   - **Dynamic price precision + directional rounding**: Use "Price Precision (decimals)" dropdown to round/format (bids down/asks up) + re-agg/cumuls (e.g., for custom needs like prec=1); table updates instantly. Qtys/cumuls floored down.
+   - **NEW filter**: Use "Show Orders" radios to view only bids, only asks, or both; updates instantly.
 
-No extra deps (Tkinter is stdlib; assumes X11/display for Linux GUI). Extend for charts (e.g., add Matplotlib) if needed. Per-symbol precision respected in display.
+No extra deps (Tkinter is stdlib; assumes X11/display for Linux GUI). Extend for charts (e.g., add Matplotlib) if needed. Per-symbol price prec as fallback; user-defined price prec with side-specific rounding/bucketing now configurable as requested. Generator now has more orders per timestamp for denser data.
